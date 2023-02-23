@@ -42,7 +42,7 @@ renderWindowInteractor.SetRenderWindow(renderWindow)
 renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
 reader = vtkUnstructuredGridReader()
-file_name = os.path.join(CURRENT_DIRECTORY, "./../data/linking_rod.vtk")  # minimal example vtk file
+file_name = os.path.join(CURRENT_DIRECTORY, "linking_rod.vtk")  # minimal example vtk file
 if not os.path.exists(file_name):
     raise Exception("file not exist")
 reader.SetFileName(file_name)
@@ -78,7 +78,7 @@ state, ctrl = server.state, server.controller
 @state.change("scale_factor")
 def update_scale_factor(scale_factor, **kwargs):
     warpVector.SetScaleFactor(scale_factor)
-    print("set scale factor: ", scale_factor)
+    # print("set scale factor: ", scale_factor)
     ctrl.view_update()
 
 
