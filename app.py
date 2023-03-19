@@ -5,6 +5,8 @@ from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import vtk, vuetify, trame, html
 
 from vtkmodules.vtkCommonDataModel import vtkDataObject
+from vtkmodules.vtkCommonCore import vtkLookupTable
+from vtkmodules.vtkRenderingAnnotation import vtkScalarBarActor
 from vtkmodules.vtkIOLegacy import vtkUnstructuredGridReader
 from vtkmodules.vtkFiltersGeneral import (
     vtkWarpVector,
@@ -16,6 +18,7 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderWindow,
     vtkRenderWindowInteractor,
 )
+from vtkmodules.vtkRenderingAnnotation import vtkCubeAxesActor
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
@@ -31,7 +34,6 @@ import vtkmodules.vtkRenderingOpenGL2  # noqa
 DEFAULT_SCALE_FACTOR = 1
 CURRENT_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 
-actor_list=[]
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
@@ -66,6 +68,8 @@ file_name = os.path.join(CURRENT_DIRECTORY, "linking_rod.vtk")  # minimal exampl
 if not os.path.exists(file_name):
     raise Exception("file not exist")
 reader.SetFileName(file_name)
+reader.ReadAllScalarsOn() # need since getpointdata().getarray() need
+reader.ReadAllVectorsOn() # same as above
 reader.Update()
 
 # Set the name of the vector data to extract.
@@ -85,6 +89,28 @@ for i in range(num_scalar):
 if len(scalar_list) == 0:
     raise Exception("no scalars in file")
 
+# Extract Array/Field information
+# dataset_arrays = []
+
+# fields = [
+#     (reader.GetOutput().GetPointData(), vtkDataObject.FIELD_ASSOCIATION_POINTS),
+#     (reader.GetOutput().GetCellData(), vtkDataObject.FIELD_ASSOCIATION_CELLS),
+# ]
+# for field in fields:
+#     field_arrays, association = field
+#     for i in range(field_arrays.GetNumberOfArrays()):  # need reader.readeallscalarsOn() to read all array
+#         array = field_arrays.GetArray(i)
+#         array_range = array.GetRange()
+#         dataset_arrays.append(
+#             {
+#                 "text": array.GetName(),
+#                 "value": i,
+#                 "range": list(array_range),
+#                 "type": association,
+#             }
+#         )
+# default_array = dataset_arrays[0]
+
 def warpVectorFilter(reader):
     warpVector = vtkWarpVector()
     warpVector.SetInputData(reader.GetOutput())
@@ -97,38 +123,29 @@ warpVector = warpVectorFilter(reader)
 # warp_mapper.SetInputConnection(warpVector.GetOutputPort())
 # warp_actor = vtkActor()
 # warp_actor.SetMapper(warp_mapper)
-# actor_list.append(warp_actor)
 
+scalar_range = reader.GetOutput().GetScalarRange()
 
-# Extract Array/Field information
-dataset_arrays = []
-fields = [
-    (reader.GetOutput().GetPointData(), vtkDataObject.FIELD_ASSOCIATION_POINTS),
-    (reader.GetOutput().GetCellData(), vtkDataObject.FIELD_ASSOCIATION_CELLS),
-]
-for field in fields:
-    field_arrays, association = field
-    for i in range(field_arrays.GetNumberOfArrays()):
-        array = field_arrays.GetArray(i)
-        array_range = array.GetRange()
-        dataset_arrays.append(
-            {
-                "text": array.GetName(),
-                "value": i,
-                "range": list(array_range),
-                "type": association,
-            }
-        )
-print(dataset_arrays)
-default_array = dataset_arrays[0]
-default_min, default_max = default_array.get("range")
+# Mesh: Apply rainbow color map
+# Create a custom lut. The lut is used for both at the mapper and at the scalar_bar
+mesh_lut = vtkLookupTable()
+# mesh_lut = mesh_mapper.GetLookupTable()
+mesh_lut.SetHueRange(0.666, 0.0)
+mesh_lut.SetSaturationRange(1.0, 1.0)
+mesh_lut.SetValueRange(1.0, 1.0)
+mesh_lut.Build()
 
 # Mesh
 mesh_mapper = vtkDataSetMapper()
 mesh_mapper.SetInputConnection(warpVector.GetOutputPort())
+mesh_mapper.SetLookupTable(mesh_lut)
+mesh_mapper.GetLookupTable().SetRange(scalar_range)
+# mesh_mapper.SetScalarRange(scalar_range)  not work
+mesh_mapper.SetUseLookupTableScalarRange(True)
+mesh_mapper.SetScalarVisibility(True)
 mesh_actor = vtkActor()
 mesh_actor.SetMapper(mesh_mapper)
-actor_list.append(mesh_actor)
+renderer.AddActor(mesh_actor)
 
 # Mesh: Setup default representation to surface
 mesh_actor.GetProperty().SetRepresentationToSurface()
@@ -138,26 +155,39 @@ mesh_actor.GetProperty().EdgeVisibilityOff()
 # mesh_actor.GetProperty().SetPointSize(5)
 # mesh_actor.GetProperty().EdgeVisibilityOff()
 
-# Mesh: Apply rainbow color map
-mesh_lut = mesh_mapper.GetLookupTable()
-mesh_lut.SetHueRange(0.666, 0.0)
-mesh_lut.SetSaturationRange(1.0, 1.0)
-mesh_lut.SetValueRange(1.0, 1.0)
-mesh_lut.Build()
 
 # Mesh: Color by default array
-mesh_mapper.SelectColorArray(default_array.get("text"))
-mesh_mapper.GetLookupTable().SetRange(default_min, default_max)
-if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
-    mesh_mapper.SetScalarModeToUsePointFieldData()
-else:
-    mesh_mapper.SetScalarModeToUseCellFieldData()
-mesh_mapper.SetScalarVisibility(True)
-mesh_mapper.SetUseLookupTableScalarRange(True)
+# mesh_mapper.SelectColorArray(default_array.get("text"))
+# mesh_mapper.GetLookupTable().SetRange(default_min, default_max)
+# if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
+#     mesh_mapper.SetScalarModeToUsePointFieldData()
+# else:
+#     mesh_mapper.SetScalarModeToUseCellFieldData()
+# mesh_mapper.SetScalarVisibility(True)
+# mesh_mapper.SetUseLookupTableScalarRange(True)
 
+# Cube Axes
+cube_axes = vtkCubeAxesActor()
+renderer.AddActor(cube_axes)
 
-for actor in actor_list:
-    renderer.AddActor(actor)
+# Cube Axes: Boundaries, camera, and styling
+cube_axes.SetBounds(mesh_actor.GetBounds())
+cube_axes.SetCamera(renderer.GetActiveCamera())
+# cube_axes.SetXLabelFormat("%6.1f")
+# cube_axes.SetYLabelFormat("%6.1f")
+# cube_axes.SetZLabelFormat("%6.1f")
+cube_axes.SetFlyModeToOuterEdges()
+
+# create the scalar_bar
+#no number idk why
+scalar_bar = vtkScalarBarActor()
+# scalar_bar.SetOrientationToHorizontal()
+# lut = mesh_actor.GetMapper().GetLookupTable()
+scalar_bar.SetLookupTable(mesh_lut)
+scalar_bar.SetTitle(scalar_list[0])
+scalar_bar.SetNumberOfLabels(4)
+renderer.AddActor(scalar_bar)
+
 renderer.ResetCamera()
 
 # -----------------------------------------------------------------------------
@@ -170,6 +200,11 @@ state, ctrl = server.state, server.controller
 # -----------------------------------------------------------------------------
 # Functions
 # -----------------------------------------------------------------------------
+
+@state.change("cube_axes_visibility")
+def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
+    cube_axes.SetVisibility(cube_axes_visibility)
+    ctrl.view_update()
 
 @state.change("warp_vector_idx")
 def update_warp_vector(warp_vector_idx, **kwargs):
@@ -196,7 +231,7 @@ def update_scale_factor_max(scale_factor_max, **kwargs):
 
 @state.change("representation_mode")
 def update_representation(representation_mode, **kwargs):
-    property = actor_list[0].GetProperty()
+    property = mesh_actor.GetProperty()
     if representation_mode == Representation.Points.value:
         property.SetRepresentationToPoints()
         property.SetPointSize(5)
@@ -217,7 +252,7 @@ def update_representation(representation_mode, **kwargs):
 
 @state.change("color_map")
 def update_colormap(color_map, **kwargs):
-    lut = actor_list[0].GetMapper().GetLookupTable()
+    lut = mesh_actor.GetMapper().GetLookupTable()
     if color_map == ColorLookupTable.Rainbow.value:
         lut.SetHueRange(0.666, 0.0)
         lut.SetSaturationRange(1.0, 1.0)
@@ -239,15 +274,12 @@ def update_colormap(color_map, **kwargs):
 
 @state.change("color_array_idx")
 def update_color_by_name(color_array_idx, **kwargs):
-    array = dataset_arrays[color_array_idx]
-    _min, _max = array.get("range")
-    mapper = actor.GetMapper()
-    mapper.SelectColorArray(array.get("text"))
-    mapper.GetLookupTable().SetRange(_min, _max)
-    # if array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
-    #     mesh_mapper.SetScalarModeToUsePointFieldData()
-    # else:
-    #     mesh_mapper.SetScalarModeToUseCellFieldData()
+    reader.SetScalarsName(scalar_list[color_array_idx])
+    reader.Update()  # Needed because of GetScalarRange
+    scalar_range = reader.GetOutput().GetScalarRange()    
+    mapper = mesh_actor.GetMapper()    
+    # mapper.SetScalarRange(scalar_range)  not work
+    mapper.GetLookupTable().SetRange(scalar_range)
     mapper.SetScalarVisibility(True)
     mapper.SetUseLookupTableScalarRange(True)
     ctrl.view_update()
@@ -256,6 +288,14 @@ def update_color_by_name(color_array_idx, **kwargs):
 # -----------------------------------------------------------------------------
 
 def tool_bar_icon():
+    vuetify.VCheckbox(
+        v_model=("cube_axes_visibility", True),
+        on_icon="mdi-cube-outline",
+        off_icon="mdi-cube-off-outline",
+        classes="mx-1",
+        hide_details=True,
+        dense=True,
+    )
     vuetify.VCheckbox(
         v_model="$vuetify.theme.dark",
         on_icon="mdi-lightbulb-off-outline",
@@ -368,7 +408,9 @@ def representation_panel():
                     # Color By
                     label="Color by",
                     v_model=("color_array_idx", 0),
-                    items=("array_list", dataset_arrays),
+                    items=("array_list", 
+                           [{"text": s, "value": i} for i, s in enumerate(scalar_list)],
+                    ),
                     hide_details=True,
                     dense=True,
                     outlined=True,
