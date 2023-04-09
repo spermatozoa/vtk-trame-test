@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-trame = ">=2.0.0"
+trame = ">=2.4.2"
 vtk = ">=9.1.0"
 
 [dev-packages]

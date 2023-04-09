@@ -17,8 +17,11 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
+    vtkTextProperty,
 )
-from vtkmodules.vtkRenderingAnnotation import vtkCubeAxesActor
+from vtkmodules.vtkRenderingAnnotation import vtkCubeAxesActor, vtkAxesActor
+from vtkmodules.vtkCommonColor import vtkNamedColors
+from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
@@ -51,11 +54,23 @@ class ColorLookupTable(Enum):
     Greyscale = 2
     Inverted_Greyscale = 3
 
+class Orientation(Enum):
+    pos_z = 0
+    pos_y = 1
+    pos_x = 2
+    neg_z = 3
+    neg_y = 4
+    neg_x = 5
+
+
 # -----------------------------------------------------------------------------
 # VTK pipeline
 # -----------------------------------------------------------------------------
 
+
+colors = vtkNamedColors()
 renderer = vtkRenderer()
+renderer.SetBackground(colors.GetColor3d('MediumSeaGreen')) # css3 color name
 renderWindow = vtkRenderWindow()
 renderWindow.AddRenderer(renderer)
 
@@ -167,25 +182,46 @@ mesh_actor.GetProperty().EdgeVisibilityOff()
 # mesh_mapper.SetUseLookupTableScalarRange(True)
 
 # Cube Axes
-cube_axes = vtkCubeAxesActor()
-renderer.AddActor(cube_axes)
+def CubeAxesActor():
+    cube_axes = vtkCubeAxesActor()
+    renderer.AddActor(cube_axes)
+    # Cube Axes: Boundaries, camera, and styling
+    cube_axes.SetBounds(mesh_actor.GetBounds())
+    cube_axes.SetCamera(renderer.GetActiveCamera())
+    # cube_axes.SetXLabelFormat("%6.1f")
+    # cube_axes.SetYLabelFormat("%6.1f")
+    # cube_axes.SetZLabelFormat("%6.1f")
+    cube_axes.SetFlyModeToOuterEdges()
+# CubeAxesActor()
+# axes = vtkAxesActor()
 
-# Cube Axes: Boundaries, camera, and styling
-cube_axes.SetBounds(mesh_actor.GetBounds())
-cube_axes.SetCamera(renderer.GetActiveCamera())
-# cube_axes.SetXLabelFormat("%6.1f")
-# cube_axes.SetYLabelFormat("%6.1f")
-# cube_axes.SetZLabelFormat("%6.1f")
-cube_axes.SetFlyModeToOuterEdges()
+# widget = vtkOrientationMarkerWidget()
+# rgba = [0] * 4
+# colors.GetColor('Carrot', rgba)
+# widget.SetOutlineColor(rgba[0], rgba[1], rgba[2])
+# widget.SetOrientationMarker(axes)
+# widget.SetInteractor(renderWindowInteractor)
+# widget.SetViewport(0.0, 0.0, 0.5, 0.5)
+# widget.SetEnabled(1)
+# widget.InteractiveOff()
 
 # create the scalar_bar
 #no number idk why
 scalar_bar = vtkScalarBarActor()
 # scalar_bar.SetOrientationToHorizontal()
-# lut = mesh_actor.GetMapper().GetLookupTable()
-scalar_bar.SetLookupTable(mesh_lut)
+lut = mesh_actor.GetMapper().GetLookupTable()
+scalar_bar.SetLookupTable(lut)
+scalar_bar.GetTitleTextProperty().SetColor(1,0,0)
 scalar_bar.SetTitle(scalar_list[0])
-scalar_bar.SetNumberOfLabels(4)
+scalar_bar.DrawTickLabelsOn()
+scalar_bar.DrawAnnotationsOn()
+scalar_bar.SetNumberOfLabels(10)
+# textFormat = vtkTextProperty()
+# textFormat.SetFontSize(160)
+# textFormat.SetColor(1,1,1) 
+# scalar_bar.SetTitleTextProperty(textFormat)
+# scalar_bar.SetLabelTextProperty(textFormat)
+# scalar_bar.SetAnnotationTextProperty(textFormat)
 renderer.AddActor(scalar_bar)
 
 renderer.ResetCamera()
@@ -201,9 +237,38 @@ state, ctrl = server.state, server.controller
 # Functions
 # -----------------------------------------------------------------------------
 
+# @state.change("color_name")
+# def change_bg_color(color_name, **kwargs):
+#     renderer.SetBackground(colors.GetColor3d(color_name))
+#     ctrl.view_update()
+
+# @state.change("actor_orientation")
+def update_actor_orientation(*args, **kwargs):
+    # print("args: ", type(args[0]))
+    actor_orientation = args[0]
+    if actor_orientation == Orientation.pos_x.value:
+        mesh_actor.RotateX(-90)
+        mesh_actor.RotateZ(90)
+    elif actor_orientation == Orientation.pos_y.value:
+        mesh_actor.SetOrientation(90, 0, 0)
+    elif actor_orientation == Orientation.pos_z.value: 
+        mesh_actor.SetOrientation(0, 180, 0)
+    elif actor_orientation == Orientation.neg_x.value:
+        mesh_actor.RotateX(-90)
+        mesh_actor.RotateZ(-90)
+    elif actor_orientation == Orientation.neg_y.value:
+        mesh_actor.SetOrientation(90, 0, 180)
+    elif actor_orientation == Orientation.neg_z.value:  
+        mesh_actor.SetOrientation(0, 0, 0)
+    else:
+        print("how")
+
+    ctrl.view_reset_camera()
+    # ctrl.view_update()
+
 @state.change("cube_axes_visibility")
 def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
-    cube_axes.SetVisibility(cube_axes_visibility)
+    # cube_axes.SetVisibility(cube_axes_visibility)
     ctrl.view_update()
 
 @state.change("warp_vector_idx")
@@ -274,6 +339,7 @@ def update_colormap(color_map, **kwargs):
 
 @state.change("color_array_idx")
 def update_color_by_name(color_array_idx, **kwargs):
+    scalar_bar.SetTitle(scalar_list[color_array_idx])
     reader.SetScalarsName(scalar_list[color_array_idx])
     reader.Update()  # Needed because of GetScalarRange
     scalar_range = reader.GetOutput().GetScalarRange()    
@@ -288,6 +354,13 @@ def update_color_by_name(color_array_idx, **kwargs):
 # -----------------------------------------------------------------------------
 
 def tool_bar_icon():
+    with vuetify.VBtn(icon=True, click="$refs.view.resetCamera()"):
+        vuetify.VIcon("mdi-backup-restore")
+    vuetify.VBtn(
+        "+X",
+        variant="tonal",
+        click=(update_actor_orientation, "[0]")
+    )
     vuetify.VCheckbox(
         v_model=("cube_axes_visibility", True),
         on_icon="mdi-cube-outline",
@@ -314,8 +387,6 @@ def tool_bar_icon():
     #     hide_details=True,
     #     dense=True,
     # )
-    with vuetify.VBtn(icon=True, click="$refs.view.resetCamera()"):
-        vuetify.VIcon("mdi-backup-restore")
 
 def drawer_panels(panel_header):
     with vuetify.VExpansionPanel():
@@ -372,6 +443,17 @@ def warp_panel():
                 readonly=True,
                 classes="mt-1",
                 )
+                # vuetify.VTextField(
+                # # color
+                # "color",
+                # v_model=("color_name", "white"),
+                # hint="color",
+                # persistent_hint=True,
+                # # hide_details=True, against hint so diable
+                # variant="plain",
+                # dense=True,
+                # classes="mt-1",
+                # )
             
         with vuetify.VRow(classes="pt-2", dense=True):
             vuetify.VTextField(
