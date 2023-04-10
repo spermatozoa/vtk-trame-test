@@ -193,17 +193,17 @@ def CubeAxesActor():
     # cube_axes.SetZLabelFormat("%6.1f")
     cube_axes.SetFlyModeToOuterEdges()
 # CubeAxesActor()
-# axes = vtkAxesActor()
+axes = vtkAxesActor()
 
-# widget = vtkOrientationMarkerWidget()
-# rgba = [0] * 4
-# colors.GetColor('Carrot', rgba)
-# widget.SetOutlineColor(rgba[0], rgba[1], rgba[2])
-# widget.SetOrientationMarker(axes)
-# widget.SetInteractor(renderWindowInteractor)
-# widget.SetViewport(0.0, 0.0, 0.5, 0.5)
-# widget.SetEnabled(1)
-# widget.InteractiveOff()
+widget = vtkOrientationMarkerWidget()
+rgba = [0] * 4
+colors.GetColor('Carrot', rgba)
+widget.SetOutlineColor(rgba[0], rgba[1], rgba[2])
+widget.SetOrientationMarker(axes)
+widget.SetInteractor(renderWindowInteractor)
+widget.SetViewport(0.0, 0.0, 0.5, 0.5)
+widget.SetEnabled(1)
+widget.InteractiveOff()
 
 # create the scalar_bar
 #no number idk why
@@ -524,6 +524,8 @@ with SinglePageWithDrawerLayout(server) as layout:
             view = vtk.VtkLocalView(renderWindow)
             ctrl.view_update = view.update
             ctrl.view_reset_camera = view.reset_camera
+            ctrl.view_widgets_set = view.set_widgets
+            view.set_widgets([widget])  # or at constructor
 
     with layout.toolbar:
         vuetify.VSpacer()
