@@ -224,6 +224,10 @@ scalar_bar.SetNumberOfLabels(10)
 # scalar_bar.SetAnnotationTextProperty(textFormat)
 renderer.AddActor(scalar_bar)
 
+# mesh_actor.SetOrigin(0,0,0)
+mesh_actor.SetOrientation(0, 0, 180)
+# mesh_actor.RotateX(-90)
+# mesh_actor.RotateZ(-90)
 renderer.ResetCamera()
 
 # -----------------------------------------------------------------------------
@@ -247,8 +251,14 @@ def update_actor_orientation(*args, **kwargs):
     # print("args: ", type(args[0]))
     actor_orientation = args[0]
     if actor_orientation == Orientation.pos_x.value:
-        mesh_actor.RotateX(-90)
-        mesh_actor.RotateZ(90)
+        print("rotate 2")
+        renderWindow.EraseOff()
+        mesh_actor.RotateZ(60)
+        renderWindow.Render()
+        renderWindow.Render()
+        renderWindow.EraseOn()
+        # mesh_actor.RotateX(-90)
+        # mesh_actor.RotateZ(90)
     elif actor_orientation == Orientation.pos_y.value:
         mesh_actor.SetOrientation(90, 0, 0)
     elif actor_orientation == Orientation.pos_z.value: 
@@ -263,8 +273,8 @@ def update_actor_orientation(*args, **kwargs):
     else:
         print("how")
 
-    ctrl.view_reset_camera()
-    # ctrl.view_update()
+    # ctrl.view_reset_camera()
+    ctrl.view_update()
 
 @state.change("cube_axes_visibility")
 def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
@@ -359,7 +369,7 @@ def tool_bar_icon():
     vuetify.VBtn(
         "+X",
         variant="tonal",
-        click=(update_actor_orientation, "[0]")
+        click=(update_actor_orientation, "[2]")
     )
     vuetify.VCheckbox(
         v_model=("cube_axes_visibility", True),
