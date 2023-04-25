@@ -193,7 +193,10 @@ def CubeAxesActor():
     # cube_axes.SetZLabelFormat("%6.1f")
     cube_axes.SetFlyModeToOuterEdges()
 # CubeAxesActor()
+
 axes = vtkAxesActor()
+axes.AxisLabelsOn()
+print(axes.GetAxisLabels())
 
 widget = vtkOrientationMarkerWidget()
 rgba = [0] * 4
@@ -235,6 +238,29 @@ renderer.ResetCamera()
 # -----------------------------------------------------------------------------
 
 server = get_server()
+server.cli.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="directory")
+args = server.cli.parse_args()
+# print(args.directory)
+
+root_dir = args.directory
+if not root_dir:
+    raise Exception("Base dir should not be empty")
+sub_dir_files = {}
+for item in os.listdir(root_dir):
+    sub_path = os.path.join(root_dir, item)
+    if os.path.isdir(sub_path):
+        file_list = []
+        for f in os.listdir(sub_path):
+            f_path = os.path.join(sub_path, f)
+            if os.path.isfile(f_path):
+                file_list.append(f)
+            elif os.path.isdir(f_path):
+                print("there is dir in ", sub_path)
+        sub_dir_files[item] = file_list
+    elif os.path.isfile(sub_path):
+        print("there is file in ", root_dir)
+# print(sub_dir_files)
+
 state, ctrl = server.state, server.controller
 
 # -----------------------------------------------------------------------------
