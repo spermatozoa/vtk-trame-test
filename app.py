@@ -37,6 +37,41 @@ import vtkmodules.vtkRenderingOpenGL2  # noqa
 DEFAULT_SCALE_FACTOR = 1
 CURRENT_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="dir", required=True)
+args = parser.parse_args()
+# print(args.directory)
+
+def get_sub_dir_file(root_dir):
+    if not root_dir:
+        raise Exception("Base dir should not be empty")
+    sub_dir_files = {}
+    sub_dir_list = []
+    for item in os.listdir(root_dir):
+        sub_path = os.path.join(root_dir, item)
+        if os.path.isdir(sub_path):
+            sub_dir_list.append(item)
+            file_list = []
+            for f in os.listdir(sub_path):
+                f_path = os.path.join(sub_path, f)
+                if os.path.isfile(f_path):
+                    file_list.append(f)
+                elif os.path.isdir(f_path):
+                    print("there is dir in ", sub_path)
+            sub_dir_files[item] = file_list
+        elif os.path.isfile(sub_path):
+            print("there is file in ", root_dir)        
+    if not sub_dir_list:
+        raise Exception("no sub dir")
+    elif not sub_dir_files:
+        raise Exception("no file in sub dir")
+    return sub_dir_list, sub_dir_files
+root_dir = args.dir
+sub_dir_list, sub_dir_files = get_sub_dir_file(root_dir)
+cur_sub_dir = sub_dir_list[0]
+cur_file = sub_dir_files[cur_sub_dir][0]
+
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
@@ -79,7 +114,8 @@ renderWindowInteractor.SetRenderWindow(renderWindow)
 renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
 reader = vtkUnstructuredGridReader()
-file_name = os.path.join(CURRENT_DIRECTORY, "linking_rod.vtk")  # minimal example vtk file
+# file_name = os.path.join(CURRENT_DIRECTORY, "linking_rod.vtk")  # minimal example vtk file
+file_name = os.path.join(root_dir, cur_sub_dir, cur_file)
 if not os.path.exists(file_name):
     raise Exception("file not exist")
 reader.SetFileName(file_name)
@@ -128,7 +164,7 @@ if len(scalar_list) == 0:
 
 def warpVectorFilter(reader):
     warpVector = vtkWarpVector()
-    warpVector.SetInputData(reader.GetOutput())
+    warpVector.SetInputConnection(reader.GetOutputPort())
     # warpVector.SetScaleFactor(0)
     warpVector.Update()
     return warpVector
@@ -196,7 +232,7 @@ def CubeAxesActor():
 
 axes = vtkAxesActor()
 axes.AxisLabelsOn()
-print(axes.GetAxisLabels())
+# print(axes.GetAxisLabels())
 
 widget = vtkOrientationMarkerWidget()
 rgba = [0] * 4
@@ -238,30 +274,42 @@ renderer.ResetCamera()
 # -----------------------------------------------------------------------------
 
 server = get_server()
-server.cli.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="directory")
-args = server.cli.parse_args()
-# print(args.directory)
+# server.cli.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="directory")
+# args = server.cli.parse_args()
+# # print(args.directory)
 
-root_dir = args.directory
-if not root_dir:
-    raise Exception("Base dir should not be empty")
-sub_dir_files = {}
-for item in os.listdir(root_dir):
-    sub_path = os.path.join(root_dir, item)
-    if os.path.isdir(sub_path):
-        file_list = []
-        for f in os.listdir(sub_path):
-            f_path = os.path.join(sub_path, f)
-            if os.path.isfile(f_path):
-                file_list.append(f)
-            elif os.path.isdir(f_path):
-                print("there is dir in ", sub_path)
-        sub_dir_files[item] = file_list
-    elif os.path.isfile(sub_path):
-        print("there is file in ", root_dir)
-# print(sub_dir_files)
+# def get_sub_dir_file(root_dir):
+#     if not root_dir:
+#         raise Exception("Base dir should not be empty")
+#     sub_dir_files = {}
+#     sub_dir_list = []
+#     for item in os.listdir(root_dir):
+#         sub_path = os.path.join(root_dir, item)
+#         if os.path.isdir(sub_path):
+#             sub_dir_list.append(item)
+#             file_list = []
+#             for f in os.listdir(sub_path):
+#                 f_path = os.path.join(sub_path, f)
+#                 if os.path.isfile(f_path):
+#                     file_list.append(f)
+#                 elif os.path.isdir(f_path):
+#                     print("there is dir in ", sub_path)
+#             sub_dir_files[item] = file_list
+#         elif os.path.isfile(sub_path):
+#             print("there is file in ", root_dir)        
+#     if not sub_dir_list:
+#         raise Exception("no sub dir")
+#     elif not sub_dir_files:
+#         raise Exception("no file in sub dir")
+#     return sub_dir_list, sub_dir_files
+# root_dir = args.directory
+# sub_dir_list, sub_dir_files = get_sub_dir_file(root_dir)
+# cur_sub_dir = sub_dir_list[0]
+# cur_file = sub_dir_files[cur_sub_dir][0]
 
 state, ctrl = server.state, server.controller
+
+state.sub_dir_list = sub_dir_list
 
 # -----------------------------------------------------------------------------
 # Functions
@@ -384,6 +432,22 @@ def update_color_by_name(color_array_idx, **kwargs):
     mapper.GetLookupTable().SetRange(scalar_range)
     mapper.SetScalarVisibility(True)
     mapper.SetUseLookupTableScalarRange(True)
+    ctrl.view_update()
+
+@state.change("sub_dir_index")
+def update_sub_dir_index(sub_dir_index, **kwargs):
+    # check if variable exist (getserver() before create global variable will need to check this)
+    global cur_sub_dir
+    global cur_file
+    try:
+        if cur_sub_dir == sub_dir_index:
+            return
+        else:
+            cur_sub_dir = sub_dir_index
+            cur_file = sub_dir_files[sub_dir_list[cur_sub_dir]][0]
+    except NameError:
+        print("NameError")
+        return
     ctrl.view_update()
 # -----------------------------------------------------------------------------
 # GUI
@@ -548,6 +612,18 @@ def representation_panel():
                     classes="pt-1",
                 )
 
+def vtk_file_chooser():
+    with vuetify.VSlideGroup(v_model=("sub_dir_index",0), show_arrows=True, mandatory=True):
+        with vuetify.VSlideItem(v_for=("dir in sub_dir_list",), key=("dir",), v_slot="{ active, toggle }"):
+            vuetify.VBtn(
+                "{{ dir }}",
+                classes="mx-2",
+                input_value=("active",),
+                active_class="primary",
+                rounded=True,
+                click="toggle"
+            )
+
         
 with SinglePageWithDrawerLayout(server) as layout:
     layout.title.set_text("Trame Example")
@@ -573,6 +649,7 @@ with SinglePageWithDrawerLayout(server) as layout:
         with vuetify.VExpansionPanels(
             multiple=True,
         ):
+            vtk_file_chooser()
             warp_panel()
             representation_panel()
 
