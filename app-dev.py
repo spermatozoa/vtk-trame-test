@@ -37,12 +37,20 @@ import vtkmodules.vtkRenderingOpenGL2  # noqa
 DEFAULT_SCALE_FACTOR = 1
 CURRENT_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="dir", required=True)
-args = parser.parse_args()
-# print(args.directory)
 
+# -----------------------------------------------------------------------------
+# Trame setup
+# -----------------------------------------------------------------------------
+
+server = get_server()
+
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="dir", required=True)
+# args = parser.parse_args()
+# print(args.directory)
+server.cli.add_argument("-b", "--base-dir", help="Directory to vtk files", dest="dir", required=True)
+args = server.cli.parse_args()
 def get_sub_dir_file(root_dir):
     if not root_dir:
         raise Exception("Base dir should not be empty")
@@ -273,18 +281,12 @@ widget = OrientationMarker()
 # mesh_actor.RotateZ(-90)
 renderer.ResetCamera()
 
-# -----------------------------------------------------------------------------
-# Trame setup
-# -----------------------------------------------------------------------------
-
-server = get_server()
 
 state, ctrl = server.state, server.controller
 
 state.sub_dir_list = sub_dir_list
 state.cur_sub_dir_idx = cur_sub_dir_idx
 state.cur_vtk_id = 0
-
 # -----------------------------------------------------------------------------
 # Functions
 # -----------------------------------------------------------------------------
@@ -375,6 +377,8 @@ def update_representation(representation_mode, **kwargs):
         property.SetRepresentationToSurface()
         property.SetPointSize(1)
         property.EdgeVisibilityOn()
+    else:
+        return
     ctrl.view_update()
 
 @state.change("color_map")
@@ -397,6 +401,8 @@ def update_colormap(color_map, **kwargs):
         lut.SetHueRange(0.0, 0.666)
         lut.SetSaturationRange(0.0, 0.0)
         lut.SetValueRange(1.0, 0.0)
+    else:
+        return
     lut.Build()
     ctrl.view_update()
 
@@ -422,8 +428,8 @@ def update_sub_dir_index(sub_dir_index=cur_sub_dir_idx, file_index=cur_file_idx,
     # check if variable exist (getserver() before create global variable will need to check this)
     global cur_sub_dir_idx
     global cur_file_idx
-    print("sub_dir: ", sub_dir_index)
-    print("file: ", file_index)
+    # print("sub_dir: ", sub_dir_index)
+    # print("file: ", file_index)
     def change_actor():
         old_vtk = vtk_file_dict[getVtkFileName(cur_sub_dir_idx, cur_file_idx)]
         new_vtk = vtk_file_dict[getVtkFileName(sub_dir_index, file_index)]
@@ -456,6 +462,8 @@ def update_sub_dir_index(sub_dir_index=cur_sub_dir_idx, file_index=cur_file_idx,
         return
     # reader.SetFileName(getVtkFilePath(cur_sub_dir_idx, cur_file_idx))
     # reader.Update()
+    # state.representation_mode = Representation.Surface.value
+    # state.color_map = ColorLookupTable.Rainbow.value
     ctrl.view_update()
 # -----------------------------------------------------------------------------
 # GUI

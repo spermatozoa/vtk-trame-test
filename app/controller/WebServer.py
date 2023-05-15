@@ -2,7 +2,6 @@ import os
 import argparse
 
 class WebServer():
-
     
     def __init__(self):
         """ Initialize class
@@ -12,6 +11,8 @@ class WebServer():
         """
         self.base_dir = self.parseArgument().dir
         self.sub_dir_list, self.sub_files_dict = self.getSubDirFile(self.base_dir)
+        self.cur_sub_dir_idx = 0
+        self.cur_file_idx = 0
 
     def parseArgument(self):
         """Parse command line argument
@@ -59,3 +60,14 @@ class WebServer():
         elif not sub_dir_files:
             raise Exception("no file in sub dir")
         return sub_dir_list, sub_dir_files
+    
+    def getVtkFileName(sub_dir_idx=0, file_idx=0, id=-1):
+        if id != -1:
+            for key, val in vtk_file_dict.items():
+                if val['id'] == id:
+                    return key
+            return sub_dir_files[sub_dir_list[sub_dir_idx]][file_idx]
+    def getVtkFilePath(sub_dir_idx, file_idx):
+        return os.path.join(root_dir, sub_dir_list[sub_dir_idx], getVtkFileName(sub_dir_idx, file_idx))
+    
+
