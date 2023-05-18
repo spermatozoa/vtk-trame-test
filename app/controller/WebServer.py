@@ -1,8 +1,8 @@
 import os
 import argparse
+from model import VtkPipeline, VtkFile
 
-class WebServer():
-    
+class WebServer():    
     def __init__(self):
         """ Initialize class
         
@@ -10,9 +10,12 @@ class WebServer():
             None
         """
         self.base_dir = self.parseArgument().dir
-        self.sub_dir_list, self.sub_files_dict = self.getSubDirFile(self.base_dir)
+        self.sub_dir_list, self.vtk_files_dict = self.getSubDirVtkFile(self.base_dir)
         self.cur_sub_dir_idx = 0
-        self.cur_file_idx = 0
+        self.cur_vtk_file_idx = 0
+        self.vtk_pipeline = VtkPipeline(self.vtk_files_dict)
+        
+        
 
     def parseArgument(self):
         """Parse command line argument
@@ -24,9 +27,9 @@ class WebServer():
         parser.add_argument("-b", "--base-dir", help="Directory to vtk files (abs path)", dest="dir", required=True)
         return parser.parse_args()
     
-    def getSubDirFile(root_dir):
-        """_summary_
-
+    def getSubDirVtkFile(root_dir):
+        """ parse file in dir and construct to class 'VtkFile'
+        
         Args:
             root_dir (str): abs path of base dir
 
@@ -35,7 +38,7 @@ class WebServer():
 
         Returns:
             list: sub dir name in list
-            dict: key = sub dir name, value = list of files name in sub dir
+            dict: key = sub dir name, value = list of VtkFile()
         """
         if not root_dir:
             raise Exception("Base dir should not be empty")
@@ -49,7 +52,7 @@ class WebServer():
                 for f in os.listdir(sub_path):
                     f_path = os.path.join(sub_path, f)
                     if os.path.isfile(f_path):
-                        file_list.append(f)
+                        file_list.append(VtkFile(f, f_path))
                     elif os.path.isdir(f_path):
                         print("there is dir in ", sub_path)
                 sub_dir_files[item] = file_list
@@ -61,13 +64,9 @@ class WebServer():
             raise Exception("no file in sub dir")
         return sub_dir_list, sub_dir_files
     
-    def getVtkFileName(sub_dir_idx=0, file_idx=0, id=-1):
-        if id != -1:
-            for key, val in vtk_file_dict.items():
-                if val['id'] == id:
-                    return key
-            return sub_dir_files[sub_dir_list[sub_dir_idx]][file_idx]
-    def getVtkFilePath(sub_dir_idx, file_idx):
-        return os.path.join(root_dir, sub_dir_list[sub_dir_idx], getVtkFileName(sub_dir_idx, file_idx))
+    def getVtkFile(self, sub_dir_idx, vtk_file_idx):
+        return self.vtk_files_dict[self.sub_dir_list[sub_dir_idx]][vtk_file_idx]
     
+
+        
 
