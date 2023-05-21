@@ -1,6 +1,7 @@
 import os
-import argparse
-from model import VtkPipeline, VtkFile
+from trame.app import get_server
+from NarlabTrame.model import VtkPipeline, VtkFile
+from NarlabTrame.view import IndexPage
 
 class WebServer():    
     def __init__(self):
@@ -9,23 +10,24 @@ class WebServer():
         Returns: 
             None
         """
-        self.base_dir = self.parseArgument().dir
+        self.server = get_server()
+        self.base_dir = self.parseArgument(self.server).dir
         self.sub_dir_list, self.vtk_files_dict = self.getSubDirVtkFile(self.base_dir)
         self.cur_sub_dir_idx = 0
         self.cur_vtk_file_idx = 0
         self.vtk_pipeline = VtkPipeline(self.vtk_files_dict)
-        
+        self.index_page = IndexPage()
         
 
-    def parseArgument(self):
+    def parseArgument(self, trame_server):
         """Parse command line argument
 
         Returns:
             dict: arguments
         """
-        parser = argparse.ArgumentParser()
-        parser.add_argument("-b", "--base-dir", help="Directory to vtk files (abs path)", dest="dir", required=True)
-        return parser.parse_args()
+        trame_server.cli.add_argument("-b", "--base-dir", help="Directory to vtk files (absolute path)", dest="dir", required=True)
+        args = trame_server.cli.parse_args()
+        return args
     
     def getSubDirVtkFile(root_dir):
         """ parse file in dir and construct to class 'VtkFile'
@@ -67,6 +69,7 @@ class WebServer():
     def getVtkFile(self, sub_dir_idx, vtk_file_idx):
         return self.vtk_files_dict[self.sub_dir_list[sub_dir_idx]][vtk_file_idx]
     
-
+    def start(self):
+        
         
 

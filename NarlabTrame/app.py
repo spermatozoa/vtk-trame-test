@@ -1,4 +1,4 @@
-from controller.WebServer import WebServer
+from NarlabTrame.controller.WebServer import WebServer
 
 if __name__ == "__main__":
     app = WebServer()
