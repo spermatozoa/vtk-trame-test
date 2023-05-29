@@ -12,16 +12,22 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderer,
     vtkTextProperty,
 )
-
+    
 class VtkFile():
-    def __init__(self, file_name, file_path) :
+    def __init__(self, file_name:str, file_path) :
+        """Initialize VtkFile
+
+        Args:
+            file_name (str): dile name of .vtk file
+            file_path (absolute path to file): for VtkReader reading file
+        """
         self.file_name = file_name
         self.reader = self.setReader(file_path)
         self.vector_list = self.getVectorList(self.reader)
         self.scalar_list = self.getScalarList(self.reader)
         self.warp_vector = self.setWarpVectorFilter(self.reader)
         self.lookup_table = self.setLookUpTable()
-        self.mapper = self.setMapper(self.reader, self.warp_vector, self.mapper)
+        self.mapper = self.setMapper(self.reader, self.warp_vector, self.lookup_table)
         self.actor = self.setActor(self.mapper)
 
     def setVisibility(self, isV):
@@ -49,7 +55,18 @@ class VtkFile():
         reader.Update()
         return reader
     
-    def getVectorList(self, reader):        
+    def getVectorList(self, reader) -> list:   
+        """
+
+        Args:
+            reader (vtkReader): to read UnstructureVtkFile
+
+        Raises:
+            Exception: no vector in file
+
+        Returns:
+            list: vector_list of vtk_file
+        """
         # Set the name of the vector data to extract.
         num_vector = reader.GetNumberOfVectorsInFile()
         vector_list = []
@@ -60,7 +77,15 @@ class VtkFile():
         # reader.SetVectorsName(vector_list[0])
         return vector_list
     
-    def getScalarList(self, reader):
+    def getScalarList(self, reader) -> list:
+        """
+
+        Args:
+            reader (vtkReader): to read UnstructureVtkFile
+
+        Returns:
+            list: scalar_list of VtkFile
+        """
         # set the name of the scalar data to extract
         num_scalar = reader.GetNumberOfScalarsInFile()
         scalar_list = []
@@ -71,14 +96,27 @@ class VtkFile():
             print("warning: no scalars in file")
         return scalar_list
     
-    def setWarpVectorFilter(self, reader):
+    def setWarpVectorFilter(self, reader) -> vtkWarpVector:
+        """set up WarpVector
+
+        Args:
+            reader (vtkReader): to read UnstructureVtkFile
+
+        Returns:
+            vtkWarpVector: to deform model
+        """
         warpVector = vtkWarpVector()
         warpVector.SetInputConnection(reader.GetOutputPort())
         # warpVector.SetScaleFactor(0)
         warpVector.Update()
         return warpVector
     
-    def setLookUpTable(self):
+    def setLookUpTable(self) -> vtkLookupTable:
+        """set up color map of model
+
+        Returns:
+            vtkLookupTable
+        """
         # Mesh: Apply rainbow color map
         # Create a custom lut. The lut is used for both at the mapper and at the scalar_bar
         mesh_lut = vtkLookupTable()
@@ -88,7 +126,17 @@ class VtkFile():
         mesh_lut.Build()
         return mesh_lut
     
-    def setMapper(self, reader, warpVector, mesh_lut):
+    def setMapper(self, reader, warpVector, mesh_lut) -> vtkDataSetMapper:
+        """set up mapper
+
+        Args:
+            reader (vtkReader): to read UnstructureVtkFile
+            warpVector (vtkWarpVector): to get OututPort
+            mesh_lut (vtkLookupTable): color map of model
+
+        Returns:
+            vtkDataSetMapper
+        """
         scalar_range = reader.GetOutput().GetScalarRange()
         # Mesh
         mesh_mapper = vtkDataSetMapper()

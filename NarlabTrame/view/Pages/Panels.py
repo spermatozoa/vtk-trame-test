@@ -3,24 +3,36 @@ from NarlabTrame.controller.Constant import Representation, ColorLookupTable
 from NarlabTrame.model import VtkFile
 
 def drawer_panels(panel_header):
-        with vuetify.VExpansionPanel():
-            vuetify.VExpansionPanelHeader(
-                panel_header,
-                classes="grey lighten-1 my-auto py-1 grey--text text--darken-3",
-                # style="user-select: none; cursor: pointer",
-                hide_details=True,
-                dense=False,
-            )
-            content = vuetify.VExpansionPanelContent(classes="py-2")
-        return content
+    """setup panel and header
 
-def warp_panel(defalut_scale_factor, reset_scale_factor):
+    Args:
+        panel_header (str): title of panel
+
+    Returns:
+        vuetify.VExpansionPanelContent: use "with" to concat UI component
+    """
+    with vuetify.VExpansionPanel():
+        vuetify.VExpansionPanelHeader(
+            panel_header,
+            classes="grey lighten-1 my-auto py-1 grey--text text--darken-3",
+            # style="user-select: none; cursor: pointer",
+            hide_details=True,
+            dense=False,
+        )
+        content = vuetify.VExpansionPanelContent(classes="py-2")
+    return content
+    
+def warp_panel(defalut_scale_factor, state):
     """
 
     Args:
         defalut_scale_factor (float or int): UI default scale factor
-        reset_scale_factor (function): callback to reset state.reset_scale_factor
+        state : trame server state dor reset scale factor
     """
+    
+    def reset_scale_factor():
+        state.scale_factor = 1
+        
     with drawer_panels(panel_header="WarpVector"):
         # for i in range(len(vtk_file_dict)): 
         #     vuetify.VSelect(
@@ -92,11 +104,11 @@ def warp_panel(defalut_scale_factor, reset_scale_factor):
             with vuetify.VBtn(icon=True, click=reset_scale_factor):
                 vuetify.VIcon("mdi-restore")
 
-def representation_panel(vtk_files_list: list):
+def representation_panel(vtk_files_dict: dict):
     """
 
     Args:
-        vtk_files_list (list): list of VtkFile
+        vtk_files_dict (dict): dict of VtkFile
     """
     with drawer_panels(panel_header="Representation"):
         vuetify.VSelect(
@@ -113,20 +125,21 @@ def representation_panel(vtk_files_list: list):
         )
         with vuetify.VRow(classes="pt-2", dense=True):
             with vuetify.VCol(cols="6"):
-                for i in range(len(vtk_files_list)):
-                    vuetify.VSelect(
-                        # Color By
-                        v_show=(f"{i}==cur_vtk_id"),
-                        label="Color by",
-                        v_model=("color_array_idx", 0),
-                        items=(f"array_list{i}", 
-                            [{"text": s, "value": i} for i, s in enumerate(vtk_files_list[i].scalar_list)],
-                        ),
-                        hide_details=True,
-                        dense=True,
-                        outlined=True,
-                        classes="pt-1",
-                    )
+                for sub_dir_files in vtk_files_dict.values():
+                    for file in sub_dir_files:
+                        vuetify.VSelect(
+                            # Color By
+                            v_show=(f"{file.file_name}==cur_vtk_file_name"),
+                            label="Color by",
+                            v_model=("color_array_idx", 0),
+                            items=(f"array_list{file.file_name}", 
+                                [{"text": s, "value": idx} for idx, s in enumerate(file.scalar_list)],
+                            ),
+                            hide_details=True,
+                            dense=True,
+                            outlined=True,
+                            classes="pt-1",
+                        )
             with vuetify.VCol(cols="6"):
                 vuetify.VSelect(
                     v_model=("color_map", ColorLookupTable.Rainbow.value),
