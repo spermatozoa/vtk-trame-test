@@ -6,7 +6,7 @@ from NarlabTrame.view.Pages import Panels, ToolBarIcon, VtkFileSelector
 DEFAULT_SCALE_FACTOR = 1
 
 class IndexPage():
-    def __init__(self, web_server, renderWindow, widget, ):
+    def __init__(self, renderWindow, widget, server, sub_dir_list, vtk_files_dict):
         """_summary_
 
         Args:
@@ -14,7 +14,7 @@ class IndexPage():
             renderWindow (vtkRenderWindow): set up vtkLocalView
             widget (VtkWidget): currently use to add orientation_marker_widget to vtkLocalView
         """
-        with SinglePageWithDrawerLayout(web_server.server) as layout:
+        with SinglePageWithDrawerLayout(server) as layout:
             layout.title.set_text("Trame Example")
 
             with layout.root:
@@ -23,7 +23,7 @@ class IndexPage():
                     classes="pa-0 fill-height",
                 ):
                     view = vtk.VtkLocalView(renderWindow)
-                    ctrl = web_server.server.controller
+                    ctrl = server.controller
                     ctrl.view_update = view.update
                     ctrl.view_reset_camera = view.reset_camera
                     ctrl.view_widgets_set = view.set_widgets
@@ -39,9 +39,9 @@ class IndexPage():
                 with vuetify.VExpansionPanels(
                     multiple=True,
                 ):
-                    VtkFileSelector.vtk_file_chooser(web_server.sub_dir_list, web_server.vtk_files_dict)
-                    Panels.warp_panel(1, web_server.server.state)
-                    Panels.representation_panel(web_server.vtk_files_dict)
+                    VtkFileSelector.vtk_file_chooser(sub_dir_list, vtk_files_dict)
+                    Panels.warp_panel(1, server.state)
+                    Panels.representation_panel(vtk_files_dict)
 
 
     

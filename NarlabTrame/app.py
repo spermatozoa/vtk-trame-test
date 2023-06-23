@@ -1,5 +1,5 @@
-from NarlabTrame.controller.WebServer import WebServer
+from NarlabTrame.controller.WebServer import start
 
 if __name__ == "__main__":
-    app = WebServer()
-    app.start()
+    # app = WebServer()
+    start()
