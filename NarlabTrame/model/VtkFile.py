@@ -14,6 +14,13 @@ from vtkmodules.vtkRenderingCore import (
 )
     
 class VtkFile():
+    
+    static_id_counter = -1    
+    @staticmethod
+    def getNextID():
+        VtkFile.static_id_counter += 1
+        return VtkFile.static_id_counter        
+        
     def __init__(self, file_name:str, file_path) :
         """Initialize VtkFile
 
@@ -22,6 +29,7 @@ class VtkFile():
             file_path (absolute path to file): for VtkReader reading file
         """
         self.file_name = file_name
+        self.id = VtkFile.getNextID()
         self.reader = self.setReader(file_path)
         self.vector_list = self.getVectorList(self.reader)
         self.scalar_list = self.getScalarList(self.reader)
@@ -29,6 +37,7 @@ class VtkFile():
         self.lookup_table = self.setLookUpTable()
         self.mapper = self.setMapper(self.reader, self.warp_vector, self.lookup_table)
         self.actor = self.setActor(self.mapper)
+        self.state_cache = {}
 
     def setVisibility(self, isV):
         """actor visibility

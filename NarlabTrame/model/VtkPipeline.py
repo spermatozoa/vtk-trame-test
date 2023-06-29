@@ -18,7 +18,7 @@ class VtkPipeline():
             VtkWindow
         """
         vtk_window = VtkWindow()
-        # let vtkfile display in renderer)
+        # let vtkfile display in renderer
         first_vtk = None
         for k in vtk_files_dict.keys():
             for vf in vtk_files_dict[k]:

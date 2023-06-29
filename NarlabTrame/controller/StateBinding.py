@@ -1,8 +1,33 @@
 from NarlabTrame.controller.Constant import *
 from NarlabTrame.controller.WebServer import *
     
-def haha():
-    print(state, "haha")
+
+cur_dir_idx  = 0
+cur_vtk_file_idx = 0
+
+def getVtkFile(sub_dir_idx=-1, vtk_file_idx=-1) -> VtkFile:
+    """
+
+    Args:
+        sub_dir_idx (int, optional): pass -1 to get cur_ctk_file. Defaults to -1.
+        vtk_file_idx (int, optional): pass -1 to get cur_ctk_file. Defaults to -1.
+
+    Returns:
+        _type_: VtkFile
+    """
+    global cur_dir_idx
+    global cur_vtk_file_idx
+    if sub_dir_idx == -1:
+        # print(cur_dir_idx)
+        # print(cur_vtk_file_idx)
+        return vtk_files_dict[sub_dir_list[cur_dir_idx]][cur_vtk_file_idx]
+    return vtk_files_dict[sub_dir_list[sub_dir_idx]][vtk_file_idx]
+# bind state
+state.sub_dir_list = sub_dir_list
+state.cur_dir_idx = cur_dir_idx
+state.cur_vtk_file_id = 0
+
+
 @state.change("cube_axes_visibility")
 def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
     # cube_axes.SetVisibility(cube_axes_visibility)
@@ -11,12 +36,14 @@ def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
 @state.change("warp_vector_idx")
 def update_warp_vector(warp_vector_idx, **kwargs):
     cur_vtk = getVtkFile()
+    cur_vtk.state_cache["warp_vector_idx"] = warp_vector_idx
     cur_vtk.reader.SetVectorsName(cur_vtk.vector_list[warp_vector_idx])
     ctrl.view_update()
 
 @state.change("scale_factor")
 def update_scale_factor(scale_factor, **kwargs):
     cur_vtk = getVtkFile()
+    cur_vtk.state_cache["scale_factor"] = scale_factor
     cur_vtk.warp_vector.SetScaleFactor(scale_factor)
     # print("set scale factor: ", scale_factor)
     ctrl.view_update()
@@ -36,6 +63,7 @@ def update_scale_factor_max(scale_factor_max, **kwargs):
 @state.change("representation_mode")
 def update_representation(representation_mode, **kwargs):    
     cur_vtk = getVtkFile()
+    cur_vtk.state_cache["representation_mode"] = representation_mode
     property = cur_vtk.actor.GetProperty()
     if representation_mode == Representation.Points.value:
         property.SetRepresentationToPoints()
@@ -60,6 +88,7 @@ def update_representation(representation_mode, **kwargs):
 @state.change("color_map")
 def update_colormap(color_map, **kwargs):    
     cur_vtk = getVtkFile()
+    cur_vtk.state_cache["color_map"] = color_map
     lut = cur_vtk.actor.GetMapper().GetLookupTable()
     if color_map == ColorLookupTable.Rainbow.value:
         lut.SetHueRange(0.666, 0.0)
@@ -85,9 +114,10 @@ def update_colormap(color_map, **kwargs):
 @state.change("color_array_idx")
 def update_color_by_name(color_array_idx, **kwargs):
     cur_vtk = getVtkFile()
+    cur_vtk.state_cache["color_array_idx"] = color_array_idx
     scalar_list = cur_vtk.scalar_list
     reader = cur_vtk.reader
-    if len(scalar_list) > 0:
+    if len(scalar_list) > 0: # in case some file do not have scalar
         vtk_pipeline.vtk_window.scalar_bar.SetTitle(scalar_list[color_array_idx])
         reader.SetScalarsName(scalar_list[color_array_idx])
         reader.Update()  # Needed because of GetScalarRange
@@ -100,17 +130,15 @@ def update_color_by_name(color_array_idx, **kwargs):
         ctrl.view_update()
 
 @state.change("sub_dir_index","file_index")
-def update_sub_dir_index(sub_dir_index=cur_dir_idx, file_index=cur_vtk_file_idx, **kwargs):
-    # check if variable exist (getserver() before create global variable will need to check this)
+def update_sub_dir_index(sub_dir_index, file_index, **kwargs):
+    # check if variable exist (getserver() before create global variable)
     global cur_dir_idx
-    global cur_vtk_file_idx
-    # print("sub_dir: ", sub_dir_index)
-    # print("file: ", file_index)
+    global cur_vtk_file_idx    
     def change_actor():
         old_vtk = getVtkFile()
         new_vtk = getVtkFile(sub_dir_index, file_index)
-        old_vtk.actor.SetVisibility(0)            
-        new_vtk.actor.SetVisibility(1)
+        old_vtk.setVisibility(False)           
+        new_vtk.setVisibility(True)
         
         scalar_bar = vtk_pipeline.vtk_window.scalar_bar
         if new_vtk.scalar_list == []:
@@ -120,10 +148,9 @@ def update_sub_dir_index(sub_dir_index=cur_dir_idx, file_index=cur_vtk_file_idx,
             scalar_bar.SetLookupTable(lut)
             scalar_bar.SetTitle(new_vtk.scalar_list[0])
             scalar_bar.SetVisibility(1)
+        state.cur_vtk_file_id = new_vtk.id                  
         
-        #state.cur_vtk_id = new_vtk['id']
-    # cur_sub_dir_idx = cur_sub_dir_idx
-    # cur_file_idx = cur_vtk_file_idx
+        
     try:
         if cur_dir_idx == sub_dir_index:
             if cur_vtk_file_idx == file_index:
@@ -132,16 +159,17 @@ def update_sub_dir_index(sub_dir_index=cur_dir_idx, file_index=cur_vtk_file_idx,
                 change_actor()
                 cur_vtk_file_idx = file_index
         else:
+            if file_index != 0:       # to avoid changing dir cause vtk_file_index out of range, we need to read index [0] VtkFile
+                state.file_index = 0  # this will triger update_sub_dir_index() again, so we can simply return after change state.file_index
+                return
             change_actor()
             cur_dir_idx = sub_dir_index
-            state.cur_sub_dir_idx = sub_dir_index
-            cur_vtk_file_idx = 0
+            cur_vtk_file_idx = file_index
+            state.cur_dir_idx = sub_dir_index
+        state.update(getVtkFile().state_cache)
+        ctrl.view_update()
         
-    except NameError:
-        print("NameError")
+    except NameError as e: 
+        print(e)
+        print("NameError: maybe some variable need to be global variable")
         return
-    # reader.SetFileName(getVtkFilePath(cur_sub_dir_idx, cur_file_idx))
-    # reader.Update()
-    # state.representation_mode = Representation.Surface.value
-    # state.color_map = ColorLookupTable.Rainbow.value
-    ctrl.view_update()

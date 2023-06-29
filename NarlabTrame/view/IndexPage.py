@@ -13,7 +13,11 @@ class IndexPage():
             web_server (WebServer): to get all useful info for settin UI
             renderWindow (vtkRenderWindow): set up vtkLocalView
             widget (VtkWidget): currently use to add orientation_marker_widget to vtkLocalView
+            
         """
+        
+        ctrl = server.controller
+        state = server.state
         with SinglePageWithDrawerLayout(server) as layout:
             layout.title.set_text("Trame Example")
 
@@ -23,7 +27,6 @@ class IndexPage():
                     classes="pa-0 fill-height",
                 ):
                     view = vtk.VtkLocalView(renderWindow)
-                    ctrl = server.controller
                     ctrl.view_update = view.update
                     ctrl.view_reset_camera = view.reset_camera
                     ctrl.view_widgets_set = view.set_widgets

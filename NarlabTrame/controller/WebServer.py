@@ -51,20 +51,6 @@ def getSubDirVtkFile(root_dir):
         raise Exception("no file in sub dir")
     return sub_dir_list, sub_dir_files
 
-def getVtkFile(sub_dir_idx=-1, vtk_file_idx=-1) -> VtkFile:
-    """
-
-    Args:
-        sub_dir_idx (int, optional): pass -1 to get cur_ctk_file. Defaults to -1.
-        vtk_file_idx (int, optional): pass -1 to get cur_ctk_file. Defaults to -1.
-
-    Returns:
-        _type_: VtkFile
-    """
-    if sub_dir_idx == -1:
-        return vtk_files_dict[sub_dir_list[cur_dir_idx]][cur_vtk_file_idx]
-    return vtk_files_dict[sub_dir_list[sub_dir_idx]][vtk_file_idx]
-
 def start():
     """start trame server
     """
@@ -79,14 +65,12 @@ ctrl = server.controller
 # parse args and load VtkFile
 base_dir = parseArgument(server).dir
 sub_dir_list, vtk_files_dict = getSubDirVtkFile(base_dir)
-cur_dir_idx  = 0
-cur_vtk_file_idx = 0
 
 vtk_pipeline = VtkPipeline.VtkPipeline(vtk_files_dict)
 index_page = IndexPage(vtk_pipeline.vtk_window.render_window, vtk_pipeline.vtk_window.orientation_marker_widget, server, sub_dir_list, vtk_files_dict)
 
-
 import NarlabTrame.controller.StateBinding as sb
-sb.haha()
+# 其實這一行就只是把StateBinding.py的東西直接搬過來而已，也就是把裡面的內容直接copy paste過來效果就跟這一行一樣
+# 注意因為會用到server.state，所以get_server()一定要先跑
 
 

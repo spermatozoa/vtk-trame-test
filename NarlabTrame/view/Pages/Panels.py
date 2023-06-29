@@ -56,7 +56,7 @@ def warp_panel(defalut_scale_factor, state):
                 # ScaleFactor
                 v_model=("scale_factor", defalut_scale_factor),
                 min=0,
-                max=("scale_factor_max",3000),
+                max=("scale_factor_max", 1),
                 step=0.01,
                 # label="ScaleFactor",
                 classes="mt-1",
@@ -93,7 +93,7 @@ def warp_panel(defalut_scale_factor, state):
             vuetify.VTextField(
             # set ScaleFactorMax
             "ScaleFactorMax",
-            v_model=("scale_factor_max",3000),
+            v_model=("scale_factor_max", 1),
             type="number",
             label="set ScaleFactorMax",
             placeholder="type number",
@@ -127,19 +127,20 @@ def representation_panel(vtk_files_dict: dict):
             with vuetify.VCol(cols="6"):
                 for sub_dir_files in vtk_files_dict.values():
                     for file in sub_dir_files:
-                        vuetify.VSelect(
-                            # Color By
-                            v_show=(f"{file.file_name}==cur_vtk_file_name"),
-                            label="Color by",
-                            v_model=("color_array_idx", 0),
-                            items=(f"array_list{file.file_name}", 
-                                [{"text": s, "value": idx} for idx, s in enumerate(file.scalar_list)],
-                            ),
-                            hide_details=True,
-                            dense=True,
-                            outlined=True,
-                            classes="pt-1",
-                        )
+                        if file.scalar_list != []:
+                            vuetify.VSelect(
+                                # Color By
+                                v_show=(f"{file.id}==cur_vtk_file_id"),
+                                label="Color by",
+                                v_model=("color_array_idx", 0),
+                                items=(f"array_list_{file.id}", 
+                                    [{"text": s, "value": idx} for idx, s in enumerate(file.scalar_list)],
+                                ),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1",
+                            )
             with vuetify.VCol(cols="6"):
                 vuetify.VSelect(
                     v_model=("color_map", ColorLookupTable.Rainbow.value),

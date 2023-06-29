@@ -6,6 +6,7 @@ def vtk_file_chooser(sub_dir_list:list, sub_dir_files:dict):
     Args:
         sub_dir_list (list): list of sub dir names
         sub_dir_files (dict): dict of VtkFiles
+        
     """
     with vuetify.VSlideGroup(v_model=("sub_dir_index",0), show_arrows=True, mandatory=True, classes="mt-2"):
         with vuetify.VSlideItem(v_for=("dir in sub_dir_list",), key=("dir",), v_slot="{ active, toggle }"):
@@ -23,7 +24,7 @@ def vtk_file_chooser(sub_dir_list:list, sub_dir_files:dict):
         # print(sub_dir_files[sub_dir_list[i]])         
         s = vuetify.VSelect(
             # FileSelect
-            v_if=(f"{i}==cur_sub_dir_idx",),
+            v_if=(f"{i}==sub_dir_index",),
             v_model=("file_index", 0),
             items=(
                 f"files{i}",
